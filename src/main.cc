@@ -15,6 +15,7 @@
  */
 
 #include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <numeric>
 #include <string>
@@ -28,6 +29,7 @@
 #include "core_inst.inc"
 #endif
 #include "defaults.hpp"
+#include "dpc_api.h"
 #include "environment.h"
 #include "event_listeners.h"
 #include "ooo_cpu.h" // for O3_CPU
@@ -53,9 +55,32 @@ const unsigned LOG2_BLOCK_SIZE = champsim::lg2(BLOCK_SIZE);
 const unsigned LOG2_PAGE_SIZE = champsim::lg2(PAGE_SIZE);
 
 #ifndef CHAMPSIM_TEST_BUILD
+// Singleton environment pointer, used by the DPC4 API below so that prefetcher
+// modules (which only see a CACHE*) can query system-wide state.
+static configured_environment* g_env;
+
+//------------------------------------//
+// DPC4 API
+//------------------------------------//
+uint8_t get_dram_bw()
+{
+  MEMORY_CONTROLLER& mc = g_env->dram_view();
+  return mc.get_bw();
+}
+
+long long get_retired_insts(uint8_t cpu_id)
+{
+  assert(cpu_id < NUM_CPUS);
+  O3_CPU& cpu = g_env->cpu_view().at(cpu_id);
+  return cpu.num_retired;
+}
+#endif
+
+#ifndef CHAMPSIM_TEST_BUILD
 int main(int argc, char** argv) // NOLINT(bugprone-exception-escape)
 {
   configured_environment gen_environment{};
+  g_env = &gen_environment;
 
   CLI::App app{"A microarchitecture simulator for research and education"};
 

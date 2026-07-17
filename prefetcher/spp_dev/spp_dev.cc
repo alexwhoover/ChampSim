@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <limits>
 
 void spp_dev::prefetcher_initialize()
 {
@@ -493,7 +494,11 @@ void spp_dev::GLOBAL_REGISTER::update_entry(uint32_t pf_sig, uint32_t pf_confide
 {
   // NOTE: GHR implementation is slightly different from the original paper
   // Instead of matching (last_offset + delta), GHR simply stores and matches the pf_offset
-  uint32_t min_conf = 100, victim_way = MAX_GHR_ENTRY;
+  // Confidence is not bounded by 100: global_accuracy can exceed 100 when
+  // pf_useful outruns pf_issued, and it compounds across lookahead depths.
+  // Start min_conf at the max representable value so victim selection
+  // always finds a candidate.
+  uint32_t min_conf = std::numeric_limits<uint32_t>::max(), victim_way = MAX_GHR_ENTRY;
 
   if constexpr (SPP_DEBUG_PRINT) {
     std::cout << "[GHR] Crossing the page boundary pf_sig: " << std::hex << pf_sig << std::dec;

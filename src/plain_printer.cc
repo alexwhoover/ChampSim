@@ -62,6 +62,27 @@ std::vector<std::string> champsim::plain_printer::format(O3_CPU::stats_type stat
                                 ::print_ratio(std::kilo::num * stats.branch_type_misses.value_or(idx, 0), stats.instrs())));
   }
 
+  // IDLE Cycles block, ported from PrincetonUniversity/ChampSim
+  // (https://github.com/PrincetonUniversity/ChampSim/blob/master/src/plain_printer.cc)
+  lines.emplace_back("IDLE Cycles");
+  lines.push_back(fmt::format("Fetch Idle Cycles {}", stats.fetch_idle_cycles));
+  lines.push_back(fmt::format("Fetch Blocked Cycles {}", stats.fetch_blocked_cycles));
+  lines.push_back(fmt::format("IFetch Failed Events {}", stats.fetch_failed_events));
+  lines.push_back(fmt::format("Fetch Buffer Not Empty {}", stats.fetch_buffer_not_empty));
+  lines.push_back(fmt::format("Decode Idle Cycles {}", stats.decode_idle_cycles));
+  lines.push_back(fmt::format("Dispatch Idle Cycles {}", stats.dispatch_idle_cycles));
+  lines.push_back(fmt::format("Execute Idle Cycles {}", stats.execute_idle_cycles));
+  lines.push_back(fmt::format("Execute None Cycles {}", stats.execute_none_cycles));
+  lines.push_back(fmt::format("Execute Head Not Ready Cycles {}", stats.execute_head_not_ready));
+  lines.push_back(fmt::format("Execute Head Not Completed Cycles {}", stats.execute_head_not_completed));
+  lines.push_back(fmt::format("Execute Pending Cycles {}", stats.execute_pending_cycles));
+  lines.push_back(fmt::format("Execute Load Blocked Cycles {}", stats.execute_load_blocked_cycles));
+  lines.push_back(fmt::format("Scheduler Idle Cycles {}", stats.sched_idle_cycles));
+  lines.push_back(fmt::format("Scheduler None Cycles {}", stats.sched_none_cycles));
+  lines.push_back(fmt::format("ROB Idle Cycles {}", stats.rob_idle_cycles));
+  lines.push_back(fmt::format("LQ Full Events {}", stats.lq_full_events));
+  lines.push_back(fmt::format("SQ Full Events {}", stats.sq_full_events));
+
   return lines;
 }
 

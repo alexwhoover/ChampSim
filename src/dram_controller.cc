@@ -57,6 +57,7 @@ DRAM_CHANNEL::DRAM_CHANNEL(champsim::chrono::picoseconds dbus_period, champsim::
   request_array_type br(address_mapping.ranks() * address_mapping.banks() * address_mapping.bankgroups());
   bank_request = br;
   active_request = std::end(bank_request);
+  dq_payload_until = champsim::chrono::clock::time_point{}; // epoch => idle
 }
 
 DRAM_ADDRESS_MAPPING::DRAM_ADDRESS_MAPPING(champsim::data::bytes channel_width_, std::size_t pref_size_, std::size_t channels_, std::size_t bankgroups_,
@@ -100,6 +101,16 @@ long MEMORY_CONTROLLER::operate()
   for (auto& channel : channels) {
     progress += channel._operate();
   }
+
+  // Cross-channel step
+  // Count how many channels are payload-active *this* cycle
+  uint16_t active = 0;
+  for (auto& ch : channels)
+    active += (current_time < ch.dq_payload_until) ? (uint16_t)1 : (uint16_t)0;
+  bw_sys.step(active);
+  bw_bucket16_sys = bw_sys.bucket16(static_cast<uint16_t>(channels.size()));
+  operate_total++;
+  bw_hist[bw_bucket16_sys]++;
 
   return progress;
 }
@@ -260,6 +271,11 @@ long DRAM_CHANNEL::populate_dbus()
       auto bankgroup_ready_time = bankgroup_readytime[op_bankgroup];
 
       active_request = iter_next_process;
+
+      // --- Mark payload transfer window on DQ for bucketting ---
+      // Data beats start when bankgroup is ready (may be >= current_time)
+      auto xfer_start = std::max(current_time, bankgroup_ready_time);
+      dq_payload_until = xfer_start + DRAM_DBUS_RETURN_TIME;
 
       // set return time. Incur penalty if bankgroup is on cooldown
       if (bankgroup_ready_time > current_time)

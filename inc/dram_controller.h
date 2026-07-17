@@ -161,6 +161,7 @@ struct DRAM_CHANNEL final : public champsim::operable {
 
   // data bus period
   champsim::chrono::picoseconds data_bus_period{};
+  champsim::chrono::clock::time_point dq_payload_until{}; // End time of ongoing payload transfer window on dbus
 
   DRAM_CHANNEL(champsim::chrono::picoseconds dbus_period, champsim::chrono::picoseconds mc_period, std::size_t t_rp, std::size_t t_rcd, std::size_t t_cas,
                std::size_t t_ras, champsim::chrono::microseconds refresh_period, std::size_t refreshes_per_period, champsim::data::bytes width,
@@ -203,6 +204,53 @@ class MEMORY_CONTROLLER : public champsim::operable
   // data bus period
   champsim::chrono::picoseconds data_bus_period{};
 
+  //---------------------------------------------//
+  // For DRAM channel BW utilization measure
+  //---------------------------------------------//
+  struct BwBucketWinMulti {
+    static constexpr unsigned BIN_LEN = 256;
+    static constexpr unsigned NUM_BINS = 16;
+    std::array<uint16_t, NUM_BINS> bin_active{}; // sum of active channels per cycle
+    std::array<uint16_t, NUM_BINS> bin_total{};  // total cycles per bin (<= BIN_LEN)
+    unsigned idx = 0, in_bin = 0;
+    uint32_t sum_active = 0, sum_total = 0;
+
+    inline void step(uint16_t active_ch)
+    {
+      bin_active[idx] += active_ch;
+      sum_active += active_ch;
+      bin_total[idx] += 1;
+      sum_total += 1;
+      if (++in_bin == BIN_LEN) {
+        idx = (idx + 1) % NUM_BINS;
+        sum_active -= bin_active[idx];
+        sum_total -= bin_total[idx];
+        bin_active[idx] = 0;
+        bin_total[idx] = 0;
+        in_bin = 0;
+      }
+    }
+    inline double util(uint16_t total_ch) const
+    {
+      if (sum_total == 0 || total_ch == 0)
+        return 0.0;
+      // average of (active_ch / total_ch) over cycles
+      return double(sum_active) / (double(total_ch) * double(sum_total));
+    }
+    inline uint8_t bucket16(uint16_t total_ch) const
+    {
+      int b = int(util(total_ch) * 16.0);
+      if (b < 0)
+        b = 0;
+      if (b > 15)
+        b = 15;
+      return uint8_t(b);
+    }
+  };
+
+  BwBucketWinMulti bw_sys{};
+  uint8_t bw_bucket16_sys{0};
+
 public:
   std::vector<DRAM_CHANNEL> channels;
 
@@ -211,11 +259,16 @@ public:
                     std::size_t chans, champsim::data::bytes chan_width, std::size_t rows, std::size_t columns, std::size_t ranks, std::size_t bankgroups,
                     std::size_t banks, std::size_t refreshes_per_period);
 
+  uint64_t operate_total = 0;
+  uint64_t bw_hist[16] = {0};
+
   void initialize() final;
   long operate() final;
   void begin_phase() final;
   void end_phase(unsigned cpu) final;
   void print_deadlock() final;
+
+  uint8_t get_bw() { return bw_bucket16_sys; }
 
   [[nodiscard]] champsim::data::bytes size() const;
 };

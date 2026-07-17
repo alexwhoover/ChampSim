@@ -239,9 +239,23 @@ long O3_CPU::fetch_instruction()
     if (success) {
       std::for_each(l1i_req_begin, l1i_req_end, [](auto& x) { x.fetch_issued = true; });
       ++progress;
+    } else {
+      // Ported from PrincetonUniversity/ChampSim (src/ooo_cpu.cc, O3_CPU::fetch_instruction)
+      sim_stats.fetch_failed_events++;
     }
 
     l1i_req_begin = std::find_if(l1i_req_end, std::end(IFETCH_BUFFER), fetch_ready);
+  }
+
+  // Ported from PrincetonUniversity/ChampSim (src/ooo_cpu.cc, O3_CPU::fetch_instruction)
+  if (progress == 0) {
+    sim_stats.fetch_idle_cycles++;
+    if (!IFETCH_BUFFER.empty() && !IFETCH_BUFFER.back().fetch_issued) {
+      sim_stats.fetch_buffer_not_empty++;
+    }
+  }
+  if (fetch_resume_time == champsim::chrono::clock::time_point::max()) {
+    sim_stats.fetch_blocked_cycles++;
   }
 
   return progress;
@@ -380,6 +394,11 @@ long O3_CPU::decode_instruction()
   DECODE_BUFFER.erase(decode_buffer_begin, decode_buffer_end);
   DIB_HIT_BUFFER.erase(dib_hit_buffer_begin, dib_hit_buffer_end);
 
+  // Ported from PrincetonUniversity/ChampSim (src/ooo_cpu.cc, O3_CPU::decode_instruction)
+  if (progress == 0) {
+    sim_stats.decode_idle_cycles++;
+  }
+
   return progress;
 }
 
@@ -388,6 +407,14 @@ void O3_CPU::do_dib_update(const ooo_model_instr& instr) { DIB.fill(instr.ip); }
 long O3_CPU::dispatch_instruction()
 {
   champsim::bandwidth available_dispatch_bandwidth{DISPATCH_WIDTH};
+
+  // Ported from PrincetonUniversity/ChampSim (src/ooo_cpu.cc, O3_CPU::dispatch_instruction)
+  if (std::count_if(std::begin(LQ), std::end(LQ), [](const auto& lq_entry) { return !lq_entry.has_value(); }) == 0) {
+    sim_stats.lq_full_events++;
+  }
+  if (std::size(SQ) == SQ_SIZE) {
+    sim_stats.sq_full_events++;
+  }
 
   // dispatch DISPATCH_WIDTH instructions into the ROB
   while (available_dispatch_bandwidth.has_remaining() && !std::empty(DISPATCH_BUFFER) && DISPATCH_BUFFER.front().ready_time <= current_time
@@ -401,6 +428,11 @@ long O3_CPU::dispatch_instruction()
 
     available_dispatch_bandwidth.consume();
     ROB.back().ready_time = current_time + (warmup ? champsim::chrono::clock::duration{} : SCHEDULING_LATENCY);
+  }
+
+  // Ported from PrincetonUniversity/ChampSim (src/ooo_cpu.cc, O3_CPU::dispatch_instruction)
+  if (available_dispatch_bandwidth.amount_consumed() == 0) {
+    sim_stats.dispatch_idle_cycles++;
   }
 
   return available_dispatch_bandwidth.amount_consumed();
@@ -424,6 +456,14 @@ long O3_CPU::schedule_instruction()
 
     if (!rob_it->executed) {
       search_bw.consume();
+    }
+  }
+
+  // Ported from PrincetonUniversity/ChampSim (src/ooo_cpu.cc, O3_CPU::schedule_instruction)
+  if (progress == 0) {
+    sim_stats.sched_idle_cycles++;
+    if (!ROB.empty() && !ROB.back().scheduled) {
+      sim_stats.sched_none_cycles++;
     }
   }
 
@@ -456,6 +496,29 @@ long O3_CPU::execute_instruction()
       if (ready) {
         do_execution(*rob_it);
         exec_bw.consume();
+      }
+    }
+  }
+
+  // Ported from PrincetonUniversity/ChampSim (src/ooo_cpu.cc, O3_CPU::execute_instruction)
+  if (exec_bw.amount_consumed() == 0) {
+    sim_stats.execute_idle_cycles++;
+    if (!ROB.empty()) {
+      sim_stats.execute_none_cycles++;
+
+      auto exec_it = std::find_if(std::begin(ROB), std::end(ROB), [](const auto& x) { return x.scheduled && !x.executed; });
+      if (exec_it != std::end(ROB)) {
+        sim_stats.execute_pending_cycles++;
+      }
+
+      if (!ROB.front().executed) {
+        sim_stats.execute_head_not_ready++;
+      }
+      if (ROB.front().executed && !ROB.front().completed) {
+        sim_stats.execute_head_not_completed++;
+        if (!std::empty(ROB.front().source_memory)) {
+          sim_stats.execute_load_blocked_cycles++;
+        }
       }
     }
   }
@@ -710,6 +773,11 @@ long O3_CPU::retire_rob()
   auto retire_count = std::distance(retire_begin, retire_end);
   num_retired += retire_count;
   ROB.erase(retire_begin, retire_end);
+
+  // Ported from PrincetonUniversity/ChampSim (src/ooo_cpu.cc, O3_CPU::retire_rob)
+  if (retire_count == 0) {
+    sim_stats.rob_idle_cycles++;
+  }
 
   return retire_count;
 }
