@@ -2,6 +2,9 @@
 
 #include <assert.h>
 
+namespace bertigo_pythia {
+
+
 const char* PolicyString[] = {"EGreddy"};
 const char* MapPolicyString(Policy policy)
 {
@@ -44,3 +47,5 @@ Policy LearningEngineBase::parsePolicy(std::string str)
   assert(false);
   return Policy::InvalidPolicy;
 }
+
+} // namespace bertigo_pythia

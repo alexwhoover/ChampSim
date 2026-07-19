@@ -6,6 +6,9 @@
 #include "feature_knowledge.h"
 #include "learning_engine_base.h"
 
+namespace bertigo_pythia {
+
+
 class LearningEngineFeaturewise : public LearningEngineBase
 {
 private:
@@ -68,5 +71,8 @@ public:
   std::vector<bool> getConsensusVec(State* state, uint32_t chosen_action);
 #endif
 };
+
+
+} // namespace bertigo_pythia
 
 #endif /* LEARNING_ENGINE_FEATUREWISE_H */

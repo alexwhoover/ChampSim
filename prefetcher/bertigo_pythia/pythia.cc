@@ -5,6 +5,9 @@
 #include "pythia_params.h"
 #include <iostream>
 
+namespace bertigo_pythia {
+
+
 // #44 Pushing the limits of the Berti prefetcher
 
 void pythia::prefetcher_initialize()
@@ -120,3 +123,5 @@ void pythia::prefetcher_final_stats() {
   set_dueling_filter.print_stats();
 #endif
 }
+
+} // namespace bertigo_pythia

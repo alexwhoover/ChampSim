@@ -9,6 +9,9 @@
 
 #include "pythia_params.h"
 
+namespace bertigo_pythia {
+
+
 #define Bitmap std::bitset<64UL>
 
 typedef enum {
@@ -222,5 +225,8 @@ typedef struct _stats {
     uint64_t histogram[PYTHIA::max_dram_bw_levels];
   } bandwidth;
 } PythiaStats;
+
+
+} // namespace bertigo_pythia
 
 #endif /* __PYTHIA_HELPER_H__ */

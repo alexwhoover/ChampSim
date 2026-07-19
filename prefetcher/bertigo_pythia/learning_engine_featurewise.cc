@@ -8,6 +8,9 @@
 
 #include "util/util.h"
 
+namespace bertigo_pythia {
+
+
 void LearningEngineFeaturewise::init_knobs()
 {
   assert(PYTHIA::le_featurewise_active_features.size() == PYTHIA::le_featurewise_num_tilings.size());
@@ -227,3 +230,6 @@ std::vector<bool> LearningEngineFeaturewise::getConsensusVec(State* state, uint3
   return consensus;
 }
 #endif
+
+
+} // namespace bertigo_pythia

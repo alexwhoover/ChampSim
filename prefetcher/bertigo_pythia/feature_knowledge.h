@@ -5,6 +5,9 @@
 
 #include "pythia_helper.h"
 
+namespace bertigo_pythia {
+
+
 typedef enum {
   F_PC = 0,                         // 0
   F_Offset,                         // 1
@@ -80,5 +83,8 @@ public:
   static std::string getFeatureString(FeatureType type);
   uint32_t getMaxAction(State* state); /* Called by featurewise engine only to get a consensus from all the features */
 };
+
+
+} // namespace bertigo_pythia
 
 #endif /* FEATURE_KNOWLEDGE */

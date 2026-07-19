@@ -6,6 +6,9 @@
 #include <sstream>
 #include <vector>
 
+namespace bertigo_pythia {
+
+
 void gen_random(char *s, const int len);
 uint32_t folded_xor(uint64_t value, uint32_t num_folds);
 
@@ -112,6 +115,9 @@ class Counter
         inline void     reset() {value = 0;}
         inline uint64_t max() {return max_value;}
 };
+
+
+} // namespace bertigo_pythia
 
 #endif /* UTIL_H */
 

@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <string>
 
+namespace bertigo_pythia {
+
+
 enum Policy {
   InvalidPolicy = 0,
   EGreedy,
@@ -54,5 +57,8 @@ public:
   inline void setActions(uint32_t actions) { m_actions = actions; }
   inline uint32_t getActions() { return m_actions; }
 };
+
+
+} // namespace bertigo_pythia
 
 #endif /* LEARNING_ENGINE_BASE_H */

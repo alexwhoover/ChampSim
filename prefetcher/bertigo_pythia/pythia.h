@@ -12,6 +12,8 @@
 #include "set_dueling.h"
 #endif
 
+namespace bertigo_pythia {
+
 struct pythia : public champsim::modules::prefetcher {
 private:
   // Multicore signal from LLC
@@ -65,5 +67,8 @@ public:
   void prefetcher_cycle_operate();
   void prefetcher_final_stats();
 };
+
+
+} // namespace bertigo_pythia
 
 #endif /* __PYTHIA_H__ */

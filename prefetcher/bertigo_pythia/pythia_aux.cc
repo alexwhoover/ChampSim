@@ -5,6 +5,9 @@
 #include "pythia.h"
 #include "pythia_params.h"
 
+namespace bertigo_pythia {
+
+
 #define CHECK_ACTION_SANITY(ai) (assert((ai) < Actions.size()))
 
 void pythia::init_knobs()
@@ -479,3 +482,5 @@ void pythia::track_in_st(uint64_t page, uint32_t pred_offset, int32_t pref_offse
 }
 
 bool pythia::is_high_bw(uint8_t bw_level) { return bw_level >= PYTHIA::high_bw_thresh ? true : false; }
+
+} // namespace bertigo_pythia

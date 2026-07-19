@@ -86,7 +86,7 @@
     "prefetch_activate": "LOAD,PREFETCH",
     "prefetcher": {
       "path": "bertigo_pythia",
-      "class": "pythia"
+      "class": "bertigo_pythia::pythia"
     }
   },
 

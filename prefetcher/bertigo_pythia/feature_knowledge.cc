@@ -5,6 +5,9 @@
 
 #include "util/util.h"
 
+namespace bertigo_pythia {
+
+
 const uint32_t tiling_offset[] = {0xaca081b9, 0x666a1c67, 0xc11d6a53, 0x8e5d97c1, 0x0d1cad54, 0x874f71cb, 0x20d2fa13, 0x73f7c4a7,
                                   0x0b701f6c, 0x8388d86d, 0xf72ac9f2, 0xbab16d82, 0x524ac258, 0xb5900302, 0xb48ccc72, 0x632f05bf,
                                   0xe7111073, 0xeb602af4, 0xf3f29ebb, 0x2a6184f2, 0x461da5da, 0x6693471d, 0x62fd0138, 0xc484efb3,
@@ -448,3 +451,5 @@ uint32_t FeatureKnowledge::process_Delta_Path_PC(uint32_t tiling, uint32_t delta
   uint32_t hashed_index = HashZoo::getHash(m_hash_type, raw_index);
   return (hashed_index % m_num_tiles);
 }
+
+} // namespace bertigo_pythia

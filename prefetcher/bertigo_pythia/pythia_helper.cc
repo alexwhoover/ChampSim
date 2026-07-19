@@ -5,6 +5,9 @@
 #include <sstream>
 #include <string>
 
+namespace bertigo_pythia {
+
+
 const char* MapRewardTypeString[] = {"none", "incorrect", "correct_untimely", "correct_timely", "out_of_bounds", "tracker_hit"};
 const char* getRewardTypeString(RewardType type)
 {
@@ -136,3 +139,5 @@ bool Scooby_STEntry::search_action_tracker(int32_t action, int32_t& conf)
     return false;
   }
 }
+
+} // namespace bertigo_pythia

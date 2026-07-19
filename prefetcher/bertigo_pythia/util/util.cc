@@ -8,6 +8,9 @@
 #include "xxhash32.h" // third-party library from https://create.stephan-brumme.com/xxhash/
 #include "xxhash64.h" // third-party library from https://create.stephan-brumme.com/xxhash/
 
+namespace bertigo_pythia {
+
+
 /* helper function */
 void gen_random(char* s, const int len)
 {
@@ -316,3 +319,5 @@ uint32_t HashZoo::getHash(uint32_t selector, uint32_t key)
     assert(false);
   }
 }
+
+} // namespace bertigo_pythia
