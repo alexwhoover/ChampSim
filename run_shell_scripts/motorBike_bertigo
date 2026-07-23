@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=champsim_motorBike_bertigo
-#SBATCH --output=champsim_motorBike_bertigo_%j.out
-#SBATCH --error=champsim_motorBike_bertigo_%j.err
+#SBATCH --job-name=champsim_motorBike_bertigo_2
+#SBATCH --output=champsim_motorBike_bertigo_2_%j.out
+#SBATCH --error=champsim_motorBike_bertigo_2_%j.err
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --time=04:00:00
