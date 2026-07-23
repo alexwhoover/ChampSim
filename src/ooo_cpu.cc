@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <numeric>
 #include <fmt/chrono.h>
 #include <fmt/core.h>
@@ -513,6 +514,13 @@ long O3_CPU::execute_instruction()
 
       if (!ROB.front().executed) {
         sim_stats.execute_head_not_ready++;
+
+        // Trace the instruction stalled at the head of the ROB, one line per stalled
+        // cycle, to be correlated against load_misses.txt
+        if (!warmup) {
+          static std::ofstream stall_trace{"load_stalls.txt"};
+          stall_trace << ROB.front().instr_id << '\n';
+        }
       }
       if (ROB.front().executed && !ROB.front().completed) {
         sim_stats.execute_head_not_completed++;

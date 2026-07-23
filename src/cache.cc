@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
 #include <numeric>
 #include <fmt/core.h>
@@ -258,6 +259,12 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
     fmt::print("[{}] {} instr_id: {} address: {} v_address: {} data: {} set: {} way: {} ({}) type: {} cycle: {}\n", NAME, __func__, handle_pkt.instr_id,
                handle_pkt.address, handle_pkt.v_address, handle_pkt.data, get_set_index(handle_pkt.address), std::distance(set_begin, way),
                hit ? "HIT" : "MISS", access_type_names.at(champsim::to_underlying(handle_pkt.type)), current_time.time_since_epoch() / clock_period);
+  }
+
+  // Trace demand loads that miss in the L1D, to be correlated against load_stalls.txt
+  if (!hit && !warmup && handle_pkt.type == access_type::LOAD && NAME.find("L1D") != std::string::npos) {
+    static std::ofstream miss_trace{"load_misses.txt"};
+    miss_trace << handle_pkt.instr_id << '\n';
   }
 
   auto metadata_thru = handle_pkt.pf_metadata;
