@@ -33,7 +33,9 @@ extern const unsigned PAGE_SIZE;
 extern const unsigned LOG2_BLOCK_SIZE;
 extern const unsigned LOG2_PAGE_SIZE;
 
-// Prefix prepended to the names of the stall-analysis traces (load_misses.txt, load_stalls.txt)
+// [STALL TRACE] Prefix prepended to the names of the stall-analysis traces
+// (load_misses.txt, load_stalls.txt). Grep "[STALL TRACE]" for every site that
+// makes up this fork-local instrumentation; see python_scripts/analyze_stalls.py.
 extern std::string STALL_TRACE_PREFIX;
 
 namespace champsim

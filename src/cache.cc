@@ -261,12 +261,6 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
                hit ? "HIT" : "MISS", access_type_names.at(champsim::to_underlying(handle_pkt.type)), current_time.time_since_epoch() / clock_period);
   }
 
-  // Trace demand loads that miss in the L1D, to be correlated against load_stalls.txt
-  if (!hit && !warmup && handle_pkt.type == access_type::LOAD && NAME.find("L1D") != std::string::npos) {
-    static std::ofstream miss_trace{STALL_TRACE_PREFIX + "load_misses.txt"};
-    miss_trace << handle_pkt.instr_id << '\n';
-  }
-
   auto metadata_thru = handle_pkt.pf_metadata;
   if (should_activate_prefetcher(handle_pkt)) {
     metadata_thru = impl_prefetcher_cache_operate(module_address(handle_pkt), handle_pkt.ip, hit, useful_prefetch, handle_pkt.type, metadata_thru);
@@ -376,6 +370,17 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
   }
 
   sim_stats.misses.increment(std::pair{handle_pkt.type, handle_pkt.cpu});
+
+  // ---- [STALL TRACE] begin -------------------------------------------------------
+  // Trace demand loads that miss in the L1D, to be correlated against load_stalls.txt.
+  // Logged here rather than in try_hit because try_hit re-runs on any packet whose miss
+  // handling failed (MSHR or lower-level queue full), which would count it once per
+  // retry; this path is reached exactly once per miss, matching sim_stats.misses.
+  if (!warmup && handle_pkt.type == access_type::LOAD && NAME.find("L1D") != std::string::npos) {
+    static std::ofstream miss_trace{STALL_TRACE_PREFIX + "load_misses.txt"};
+    miss_trace << handle_pkt.instr_id << '\n';
+  }
+  // ---- [STALL TRACE] end ---------------------------------------------------------
 
   return true;
 }

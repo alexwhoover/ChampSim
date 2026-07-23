@@ -54,6 +54,7 @@ const unsigned PAGE_SIZE = configured_environment::page_size;
 const unsigned LOG2_BLOCK_SIZE = champsim::lg2(BLOCK_SIZE);
 const unsigned LOG2_PAGE_SIZE = champsim::lg2(PAGE_SIZE);
 
+// [STALL TRACE] definition of the trace-file prefix declared in champsim.h
 std::string STALL_TRACE_PREFIX{};
 
 #ifndef CHAMPSIM_TEST_BUILD
@@ -114,6 +115,7 @@ int main(int argc, char** argv) // NOLINT(bugprone-exception-escape)
 
   app.add_option("--listeners", requested_listeners, "A list of the listeners to be attached to the run");
 
+  // [STALL TRACE] opt-in prefix for the stall-analysis traces
   app.add_option("--stall-trace-prefix", STALL_TRACE_PREFIX,
                  "A prefix prepended to the stall analysis trace files, which are written as <prefix>load_misses.txt and <prefix>load_stalls.txt");
 

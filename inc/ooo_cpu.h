@@ -96,6 +96,11 @@ public:
   // instruction
   long long num_retired = 0;
 
+  // [STALL TRACE] the instruction currently blocked at the ROB head, and how many
+  // consecutive cycles it has been blocked. Written out by execute_instruction.
+  ooo_model_instr::id_type stall_head_id = 0;
+  long stall_head_cycles = 0;
+
   bool show_heartbeat = true;
 
   using stats_type = cpu_stats;

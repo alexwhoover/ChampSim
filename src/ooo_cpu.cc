@@ -514,13 +514,6 @@ long O3_CPU::execute_instruction()
 
       if (!ROB.front().executed) {
         sim_stats.execute_head_not_ready++;
-
-        // Trace the instruction stalled at the head of the ROB, one line per stalled
-        // cycle, to be correlated against load_misses.txt
-        if (!warmup) {
-          static std::ofstream stall_trace{STALL_TRACE_PREFIX + "load_stalls.txt"};
-          stall_trace << ROB.front().instr_id << '\n';
-        }
       }
       if (ROB.front().executed && !ROB.front().completed) {
         sim_stats.execute_head_not_completed++;
@@ -530,6 +523,32 @@ long O3_CPU::execute_instruction()
       }
     }
   }
+
+  // ---- [STALL TRACE] begin -------------------------------------------------------
+  // Trace the instruction blocked at the ROB head waiting on memory, to be correlated
+  // against load_misses.txt. A load is executed once it has issued to the memory system
+  // and completed once its data returns, so a cache miss holds the head in the window
+  // between the two -- the same condition execute_load_blocked_cycles counts. Checked
+  // every cycle, independent of whether the rest of the window made progress, and
+  // emitted as one "<instr_id> <cycles>" record per uninterrupted burst.
+  if (!warmup) {
+    static std::ofstream stall_trace{STALL_TRACE_PREFIX + "load_stalls.txt"};
+
+    const bool blocked = !ROB.empty() && ROB.front().executed && !ROB.front().completed && !std::empty(ROB.front().source_memory);
+    const auto head_id = blocked ? ROB.front().instr_id : ooo_model_instr::id_type{};
+
+    if (!blocked || head_id != stall_head_id) {
+      if (stall_head_cycles > 0) {
+        stall_trace << stall_head_id << ' ' << stall_head_cycles << '\n';
+      }
+      stall_head_id = head_id;
+      stall_head_cycles = 0;
+    }
+    if (blocked) {
+      ++stall_head_cycles;
+    }
+  }
+  // ---- [STALL TRACE] end ---------------------------------------------------------
 
   return exec_bw.amount_consumed();
 }

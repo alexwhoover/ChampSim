@@ -4,15 +4,23 @@
 Reads the two traces emitted by the instrumented simulator:
 
     <prefix>load_misses.txt  one instr_id per L1D demand-load miss
-    <prefix>load_stalls.txt  one instr_id per cycle the ROB head was not ready
+    <prefix>load_stalls.txt  "<instr_id> <cycles>" per instruction that blocked the
+                             ROB head waiting on memory, and for how many cycles
 
 where <prefix> is whatever was passed to the simulator's --stall-trace-prefix,
 and reports which misses actually stalled the machine, and for how long.
+
+The simulator side of this is fork-local instrumentation: grep the C++ sources for
+"[STALL TRACE]" to find every site that writes or configures these two files.
+
+Two sanity checks against the simulator's own output: the reported miss count
+should equal the L1D LOAD MISS statistic, and the total stalled cycles should
+equal Execute Load Blocked Cycles (short by at most one record, since the burst
+in flight when the simulation ends is never written out).
 """
 
 import sys
 from collections import Counter
-from itertools import groupby
 from pathlib import Path
 
 
@@ -27,18 +35,19 @@ def read_ids(path):
     return ids
 
 
-def stall_runs(path):
-    """Return (instr_id, consecutive_cycles) for each uninterrupted stall burst.
+def read_stalls(path):
+    """Return (instr_id, cycles) for each blocking instruction.
 
-    An instruction can appear in more than one burst: the ROB head stays put
-    while other instructions execute, and those cycles are not logged.
+    An instruction contributes exactly one record: a load is executed before it is
+    completed and neither flag is ever reset, so once the head blocks on memory it
+    stays blocked until its data returns, at which point it retires.
     """
     runs = []
-    for instr_id, group in groupby(read_ids(path)):
-        length = 0
-        for _ in group:
-            length += 1
-        runs.append((instr_id, length))
+    with open(path) as f:
+        for line in f:
+            parts = line.split()
+            if len(parts) == 2:
+                runs.append((int(parts[0]), int(parts[1])))
     return runs
 
 
@@ -46,19 +55,14 @@ def analyze(miss_path, stall_path):
     # One instruction can issue several loads, so count rather than just collect
     miss_counts = Counter(read_ids(miss_path))
 
-    total_cycles = Counter()  # instr_id -> cycles stalled at the ROB head
-    bursts = Counter()        # instr_id -> number of separate stall bursts
-    longest_burst = Counter() # instr_id -> longest single burst
-
-    for instr_id, length in stall_runs(stall_path):
+    total_cycles = Counter()  # instr_id -> cycles spent blocking the ROB head
+    for instr_id, length in read_stalls(stall_path):
         total_cycles[instr_id] += length
-        bursts[instr_id] += 1
-        longest_burst[instr_id] = max(longest_burst[instr_id], length)
 
-    return miss_counts, total_cycles, bursts, longest_burst
+    return miss_counts, total_cycles
 
 
-def report(miss_counts, total_cycles, bursts, longest_burst):
+def report(miss_counts, total_cycles):
     stalled_ids = set(total_cycles)
     missed_ids = set(miss_counts)
 
@@ -88,9 +92,13 @@ def report(miss_counts, total_cycles, bursts, longest_burst):
     if stalling_misses:
         cycles = sorted(total_cycles[i] for i in stalling_misses)
         mean = sum(cycles) / len(cycles)
+
+        def pctl(q):
+            return cycles[min(int(len(cycles) * q), len(cycles) - 1)]
+
         print('\n=== Stall length, missing loads only ===')
-        print(f'  mean {mean:.1f}  median {cycles[len(cycles) // 2]}  '
-              f'p90 {cycles[int(len(cycles) * 0.90)]}  p99 {cycles[int(len(cycles) * 0.99)]}  max {cycles[-1]}')
+        print(f'  mean {mean:.1f}  median {pctl(0.50)}  '
+              f'p90 {pctl(0.90)}  p99 {pctl(0.99)}  max {cycles[-1]}')
 
 
 def main():
