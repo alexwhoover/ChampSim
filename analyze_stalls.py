@@ -14,26 +14,31 @@ from collections import Counter
 from itertools import groupby
 from pathlib import Path
 
-TOP_N = 20
-
 
 def read_ids(path):
-    """Yield the instruction IDs in a trace file, in order."""
+    """Return the instruction IDs in a trace file, in order."""
+    ids = []
     with open(path) as f:
         for line in f:
             line = line.strip()
             if line:
-                yield int(line)
+                ids.append(int(line))
+    return ids
 
 
 def stall_runs(path):
-    """Yield (instr_id, consecutive_cycles) for each uninterrupted stall burst.
+    """Return (instr_id, consecutive_cycles) for each uninterrupted stall burst.
 
     An instruction can appear in more than one burst: the ROB head stays put
     while other instructions execute, and those cycles are not logged.
     """
+    runs = []
     for instr_id, group in groupby(read_ids(path)):
-        yield instr_id, sum(1 for _ in group)
+        length = 0
+        for _ in group:
+            length += 1
+        runs.append((instr_id, length))
+    return runs
 
 
 def analyze(miss_path, stall_path):
@@ -86,38 +91,29 @@ def report(miss_counts, total_cycles, bursts, longest_burst):
         print(f'  mean {mean:.1f}  median {cycles[len(cycles) // 2]}  '
               f'p90 {cycles[int(len(cycles) * 0.90)]}  p99 {cycles[int(len(cycles) * 0.99)]}  max {cycles[-1]}')
 
-    print(f'\n=== Top {TOP_N} stalls ===')
-    print(f'  {"instr_id":>12}  {"cycles":>8}  {"bursts":>7}  {"longest":>8}  {"misses":>7}')
-    for instr_id, cycles in total_cycles.most_common(TOP_N):
-        print(f'  {instr_id:>12}  {cycles:>8}  {bursts[instr_id]:>7}  '
+
+def print_detail(miss_counts, total_cycles, bursts, longest_burst):
+    print('\n=== Per-instruction detail ===')
+    print(f'  {"instr_id":>12}  {"stall_cycles":>12}  {"bursts":>7}  {"longest":>8}  {"misses":>7}')
+    for instr_id in sorted(set(total_cycles) | set(miss_counts)):
+        print(f'  {instr_id:>12}  {total_cycles[instr_id]:>12}  {bursts[instr_id]:>7}  '
               f'{longest_burst[instr_id]:>8}  {miss_counts.get(instr_id, 0):>7}')
-
-
-def write_csv(path, miss_counts, total_cycles, bursts, longest_burst):
-    with open(path, 'w') as f:
-        f.write('instr_id,stall_cycles,bursts,longest_burst,load_misses\n')
-        for instr_id in sorted(set(total_cycles) | set(miss_counts)):
-            f.write(f'{instr_id},{total_cycles[instr_id]},{bursts[instr_id]},'
-                    f'{longest_burst[instr_id]},{miss_counts.get(instr_id, 0)}\n')
-    print(f'\nPer-instruction detail written to {path}')
 
 
 def main():
     args = sys.argv[1:]
     miss_path = Path(args[0]) if len(args) > 0 else Path('load_misses.txt')
     stall_path = Path(args[1]) if len(args) > 1 else Path('load_stalls.txt')
-    csv_path = Path(args[2]) if len(args) > 2 else None
 
     for path in (miss_path, stall_path):
         if not path.exists():
             print(f'{sys.argv[0]}: {path} not found', file=sys.stderr)
-            print(f'Usage: {sys.argv[0]} [load_misses.txt] [load_stalls.txt] [out.csv]', file=sys.stderr)
+            print(f'Usage: {sys.argv[0]} [load_misses.txt] [load_stalls.txt]', file=sys.stderr)
             return 1
 
     results = analyze(miss_path, stall_path)
     report(*results)
-    if csv_path:
-        write_csv(csv_path, *results)
+    print_detail(*results)
     return 0
 
 
