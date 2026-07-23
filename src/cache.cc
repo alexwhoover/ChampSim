@@ -263,7 +263,7 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 
   // Trace demand loads that miss in the L1D, to be correlated against load_stalls.txt
   if (!hit && !warmup && handle_pkt.type == access_type::LOAD && NAME.find("L1D") != std::string::npos) {
-    static std::ofstream miss_trace{"load_misses.txt"};
+    static std::ofstream miss_trace{STALL_TRACE_PREFIX + "load_misses.txt"};
     miss_trace << handle_pkt.instr_id << '\n';
   }
 

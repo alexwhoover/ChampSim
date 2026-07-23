@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <exception>
 #include <limits>
+#include <string>
 
 #include "extent.h"
 #include "util/bit_enum.h"
@@ -31,6 +32,9 @@ extern const unsigned BLOCK_SIZE;
 extern const unsigned PAGE_SIZE;
 extern const unsigned LOG2_BLOCK_SIZE;
 extern const unsigned LOG2_PAGE_SIZE;
+
+// Prefix prepended to the names of the stall-analysis traces (load_misses.txt, load_stalls.txt)
+extern std::string STALL_TRACE_PREFIX;
 
 namespace champsim
 {

@@ -518,7 +518,7 @@ long O3_CPU::execute_instruction()
         // Trace the instruction stalled at the head of the ROB, one line per stalled
         // cycle, to be correlated against load_misses.txt
         if (!warmup) {
-          static std::ofstream stall_trace{"load_stalls.txt"};
+          static std::ofstream stall_trace{STALL_TRACE_PREFIX + "load_stalls.txt"};
           stall_trace << ROB.front().instr_id << '\n';
         }
       }

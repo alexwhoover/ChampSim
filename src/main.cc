@@ -54,6 +54,8 @@ const unsigned PAGE_SIZE = configured_environment::page_size;
 const unsigned LOG2_BLOCK_SIZE = champsim::lg2(BLOCK_SIZE);
 const unsigned LOG2_PAGE_SIZE = champsim::lg2(PAGE_SIZE);
 
+std::string STALL_TRACE_PREFIX{};
+
 #ifndef CHAMPSIM_TEST_BUILD
 // Singleton environment pointer, used by the DPC4 API below so that prefetcher
 // modules (which only see a CACHE*) can query system-wide state.
@@ -111,6 +113,9 @@ int main(int argc, char** argv) // NOLINT(bugprone-exception-escape)
       app.add_option("--json", json_file_name, "The name of the file to receive JSON output. If no name is specified, stdout will be used")->expected(0, 1);
 
   app.add_option("--listeners", requested_listeners, "A list of the listeners to be attached to the run");
+
+  app.add_option("--stall-trace-prefix", STALL_TRACE_PREFIX,
+                 "A prefix prepended to the stall analysis trace files, which are written as <prefix>load_misses.txt and <prefix>load_stalls.txt");
 
   app.add_option("traces", trace_names, "The paths to the traces")->required()->expected(NUM_CPUS)->check(CLI::ExistingFile);
 

@@ -3,9 +3,10 @@
 
 Reads the two traces emitted by the instrumented simulator:
 
-    load_misses.txt  one instr_id per L1D demand-load miss
-    load_stalls.txt  one instr_id per cycle the ROB head was not ready
+    <prefix>load_misses.txt  one instr_id per L1D demand-load miss
+    <prefix>load_stalls.txt  one instr_id per cycle the ROB head was not ready
 
+where <prefix> is whatever was passed to the simulator's --stall-trace-prefix,
 and reports which misses actually stalled the machine, and for how long.
 """
 
@@ -92,28 +93,21 @@ def report(miss_counts, total_cycles, bursts, longest_burst):
               f'p90 {cycles[int(len(cycles) * 0.90)]}  p99 {cycles[int(len(cycles) * 0.99)]}  max {cycles[-1]}')
 
 
-def print_detail(miss_counts, total_cycles, bursts, longest_burst):
-    print('\n=== Per-instruction detail ===')
-    print(f'  {"instr_id":>12}  {"stall_cycles":>12}  {"bursts":>7}  {"longest":>8}  {"misses":>7}')
-    for instr_id in sorted(set(total_cycles) | set(miss_counts)):
-        print(f'  {instr_id:>12}  {total_cycles[instr_id]:>12}  {bursts[instr_id]:>7}  '
-              f'{longest_burst[instr_id]:>8}  {miss_counts.get(instr_id, 0):>7}')
-
-
 def main():
     args = sys.argv[1:]
-    miss_path = Path(args[0]) if len(args) > 0 else Path('load_misses.txt')
-    stall_path = Path(args[1]) if len(args) > 1 else Path('load_stalls.txt')
+    prefix = args[0] if len(args) > 0 else ''
+
+    miss_path = Path(prefix + 'load_misses.txt')
+    stall_path = Path(prefix + 'load_stalls.txt')
 
     for path in (miss_path, stall_path):
         if not path.exists():
             print(f'{sys.argv[0]}: {path} not found', file=sys.stderr)
-            print(f'Usage: {sys.argv[0]} [load_misses.txt] [load_stalls.txt]', file=sys.stderr)
+            print(f'Usage: {sys.argv[0]} [prefix]', file=sys.stderr)
             return 1
 
     results = analyze(miss_path, stall_path)
     report(*results)
-    print_detail(*results)
     return 0
 
 

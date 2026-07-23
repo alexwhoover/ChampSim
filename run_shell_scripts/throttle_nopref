@@ -13,6 +13,7 @@ module load gcc-native/14
 CHAMPSIM_DIR=/home/b35cg/ahoover.b35cg/champ_sim
 CONFIG=dpc4/1C.fullBW.nopref.json
 BINARY=bin/1C.fullBW.nopref
+STALL_PREFIX=throttle_nopref_
 TRACE=traces/throttle/throttleTrace_S500B_T1B.champsimtrace.xz
 
 cd "$CHAMPSIM_DIR"
@@ -30,6 +31,7 @@ echo "Start: $(date)"
 "$BINARY" \
     --warmup-instructions 200000000 \
     --simulation-instructions 500000000 \
+    --stall-trace-prefix "$STALL_PREFIX" \
     "$TRACE"
 
 echo "End: $(date)"
