@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-ChampSim: a trace-driven microarchitecture simulator (C++17). This fork is used for thesis work on data prefetching — it adds prefetcher modules (`prefetcher/BertiGo`, `bertigo_pythia`, `berti`, `pythia`, `ANeLin`), DPC4 competition submissions under `DPC4_code_submissions/`, machine configs in `thesis_configurations/`, Slurm launch scripts in `run_shell_scripts/`, collected simulator output in `results/`, and `parse_results.py`.
+ChampSim: a trace-driven microarchitecture simulator (C++17). This fork is used for thesis work on data prefetching — it adds prefetcher modules (`prefetcher/BertiGo`, `bertigo_pythia`, `berti`, `pythia`, `ANeLin`), DPC4 competition submissions under `DPC4_code_submissions/`, machine configs in `thesis_configurations/`, Slurm launch scripts in `run_shell_scripts/`, collected simulator output in `results/`, and analysis scripts in `python_scripts/` (`parse_results.py`, `analyze_stalls.py`).
 
 ## Build workflow
 
@@ -28,10 +28,35 @@ Key points:
 
 ```bash
 bin/<exe> --warmup-instructions 200000000 --simulation-instructions 500000000 path/to/trace.champsimtrace.xz
-python3 parse_results.py <output.txt>   # summarizes IPC, per-cache hit/miss, prefetch usefulness
+python3 python_scripts/parse_results.py <output.txt>   # summarizes IPC, per-cache hit/miss, prefetch usefulness
 ```
 
 Long runs go through Slurm; `run_shell_scripts/<workload>_<config>` are sbatch scripts (they build the binary if missing). Note their hardcoded `CHAMPSIM_DIR`/`TRACE` paths refer to the cluster, not this checkout.
+
+## Stall analysis
+
+Fork-local instrumentation that answers "how many stalled cycles were actually caused by an L1D load miss?" — i.e. how much headroom a better prefetcher has, versus latency the out-of-order engine already tolerates. **Grep `[STALL TRACE]` across `inc/` and `src/` to find every site**; the blocks in `.cc` files are bracketed with `begin`/`end` rulers so the boundary against upstream code is unambiguous.
+
+```bash
+bin/<exe> --stall-trace-prefix results/foo_ <other args> <trace>   # emits the two traces
+python3 python_scripts/analyze_stalls.py results/foo_             # joins them
+```
+
+Two files, joined on `instr_id`:
+
+- `<prefix>load_misses.txt` — one ID per L1D demand-load miss, written in `CACHE::handle_miss` (`src/cache.cc`). It must be logged there and **not** in `try_hit`: `try_hit` re-runs every cycle on packets whose miss handling failed (MSHR or lower-level queue full), so logging there double-counts, while `sim_stats.misses` only ticks once.
+- `<prefix>load_stalls.txt` — `"<instr_id> <cycles>"` per instruction that blocked the ROB head waiting on memory, written in `O3_CPU::execute_instruction` (`src/ooo_cpu.cc`), with the running count held in `O3_CPU::stall_head_id`/`stall_head_cycles`.
+
+**The predicate is the part that's easy to get wrong.** For a load, `executed` means the address was computed and the request went to the L1D; `completed` means the data came back. A cache miss therefore holds the ROB head in the window *between* the two, so the condition is `executed && !completed && !source_memory.empty()` — the same thing `execute_load_blocked_cycles` counts. `!executed` (`execute_head_not_ready`) is a register-dependency stall and has essentially nothing to do with the cache; tracing it yields a near-zero correlation. The check must also sit **outside** the `exec_bw.amount_consumed() == 0` guard, or stalls are only sampled on cycles when nothing anywhere in the window executed.
+
+Validate every run against the simulator's own output before trusting the percentages:
+
+| `analyze_stalls.py` | must equal ChampSim stat |
+|---|---|
+| `load misses (accesses)` | `L1D LOAD ... MISS` |
+| `total stalled cycles` | `Execute Load Blocked Cycles` |
+
+Limitations: single-core only (the `static std::ofstream`s are shared across instances and `instr_id`s collide between cores); the burst in flight when simulation ends is never flushed, so stalled cycles can be short by one record; and an L2 hit is counted the same as a DRAM trip, so the "prefetchable" figure is an upper bound.
 
 ## Tests
 
