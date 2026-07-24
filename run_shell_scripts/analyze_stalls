@@ -1,0 +1,36 @@
+#!/bin/bash
+#SBATCH --job-name=analyze_stalls
+#SBATCH --output=analyze_stalls_%j.out
+#SBATCH --error=analyze_stalls_%j.err
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --time=02:00:00
+#SBATCH --mem=16G
+
+# Wrap python_scripts/analyze_stalls.py as a batch job: it joins the two
+# per-instruction stall traces, which is too heavy for the Isambard 3 head node.
+#
+# Usage:
+#   sbatch run_shell_scripts/analyze_stalls <stall-trace-prefix>
+# e.g.
+#   sbatch run_shell_scripts/analyze_stalls results/motorBike_bertigo_
+
+set -euo pipefail
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: sbatch $0 <stall-trace-prefix>" >&2
+    exit 1
+fi
+
+PREFIX="$1"
+
+CHAMPSIM_DIR=/home/b35cg/ahoover.b35cg/champ_sim
+cd "$CHAMPSIM_DIR"
+
+echo "Analyzing stall traces with prefix: $PREFIX"
+echo "Start: $(date)"
+
+python3 python_scripts/analyze_stalls.py "$PREFIX" > "${PREFIX}stall_analysis.txt"
+
+echo "Wrote ${PREFIX}stall_analysis.txt"
+echo "End: $(date)"
