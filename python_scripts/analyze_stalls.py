@@ -83,12 +83,13 @@ def report(miss_counts, total_cycles):
     print(f'  ...that stalled the ROB  {len(stalling_misses):>12,}  {pct(len(stalling_misses), len(missed_ids))}')
     print(f'  ...fully hidden          {len(silent_misses):>12,}  {pct(len(silent_misses), len(missed_ids))}')
 
-    print('\n=== Stall cycles ===')
-    print(f'  total stalled cycles     {all_cycles:>12,}')
-    print(f'  ...on a missing load     {miss_cycles:>12,}  {pct(miss_cycles, all_cycles)}')
-    print(f'  ...on something else     {all_cycles - miss_cycles:>12,}  {pct(all_cycles - miss_cycles, all_cycles)}')
-    print(f'  distinct stalled instrs  {len(stalled_ids):>12,}')
-    print(f'  ...with no load miss     {len(stalls_without_miss):>12,}  {pct(len(stalls_without_miss), len(stalled_ids))}')
+    hit_cycles = all_cycles - miss_cycles
+    print('\n=== Stall cycles (ROB head blocked on a load) ===')
+    print(f'  {"total stalled cycles":<30}{all_cycles:>12,}')
+    print(f'  {"...load missed L1D":<30}{miss_cycles:>12,}  {pct(miss_cycles, all_cycles)}')
+    print(f'  {"...load hit L1D":<30}{hit_cycles:>12,}  {pct(hit_cycles, all_cycles)}')
+    print(f'  {"distinct stalled instrs":<30}{len(stalled_ids):>12,}')
+    print(f'  {"...load hit L1D (no miss)":<30}{len(stalls_without_miss):>12,}  {pct(len(stalls_without_miss), len(stalled_ids))}')
 
     if stalling_misses:
         cycles = sorted(total_cycles[i] for i in stalling_misses)
