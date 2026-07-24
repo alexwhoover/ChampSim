@@ -103,15 +103,17 @@ def report(miss_counts, total_cycles):
 
 def main():
     args = sys.argv[1:]
-    prefix = args[0] if len(args) > 0 else ''
+    if len(args) != 2:
+        print(f'Usage: {sys.argv[0]} <load_misses.txt> <load_stalls.txt>', file=sys.stderr)
+        return 1
 
-    miss_path = Path(prefix + 'load_misses.txt')
-    stall_path = Path(prefix + 'load_stalls.txt')
+    miss_path = Path(args[0])
+    stall_path = Path(args[1])
 
     for path in (miss_path, stall_path):
         if not path.exists():
             print(f'{sys.argv[0]}: {path} not found', file=sys.stderr)
-            print(f'Usage: {sys.argv[0]} [prefix]', file=sys.stderr)
+            print(f'Usage: {sys.argv[0]} <load_misses.txt> <load_stalls.txt>', file=sys.stderr)
             return 1
 
     results = analyze(miss_path, stall_path)
