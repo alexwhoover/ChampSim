@@ -29,13 +29,14 @@ STALLS="$2"
 OUTPUT="${3:-${MISSES%load_misses.txt}stall_analysis.txt}"
 
 CHAMPSIM_DIR=/home/b35cg/ahoover.b35cg/champ_sim
-cd "$CHAMPSIM_DIR"
 
+# Paths are interpreted relative to the directory sbatch was invoked from (Slurm
+# runs the script there); do NOT cd, or relative arguments would break.
 echo "Misses: $MISSES"
 echo "Stalls: $STALLS"
 echo "Start: $(date)"
 
-python3 python_scripts/analyze_stalls.py "$MISSES" "$STALLS" > "$OUTPUT"
+python3 "$CHAMPSIM_DIR/python_scripts/analyze_stalls.py" "$MISSES" "$STALLS" > "$OUTPUT"
 
 echo "Wrote $OUTPUT"
 echo "End: $(date)"
