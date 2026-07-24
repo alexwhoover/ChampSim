@@ -24,41 +24,42 @@ from collections import Counter
 from pathlib import Path
 
 
-def read_ids(path):
-    """Return the instruction IDs in a trace file, in order."""
-    ids = []
+def count_ids(path):
+    """Count occurrences of each instruction ID in a trace file.
+
+    Streams the file line by line so nothing larger than the resulting Counter is
+    ever held in memory (these traces have one line per L1D demand-load miss).
+    """
+    counts = Counter()  # instr_id -> number of misses
     with open(path) as f:
         for line in f:
             line = line.strip()
             if line:
-                ids.append(int(line))
-    return ids
+                counts[int(line)] += 1
+    return counts
 
 
-def read_stalls(path):
-    """Return (instr_id, cycles) for each blocking instruction.
+def sum_stalls(path):
+    """Sum stall cycles per instruction ID.
 
     An instruction contributes exactly one record: a load is executed before it is
     completed and neither flag is ever reset, so once the head blocks on memory it
-    stays blocked until its data returns, at which point it retires.
+    stays blocked until its data returns, at which point it retires. Streamed line
+    by line so only the per-instruction totals live in memory.
     """
-    runs = []
+    total_cycles = Counter()  # instr_id -> cycles spent blocking the ROB head
     with open(path) as f:
         for line in f:
             parts = line.split()
             if len(parts) == 2:
-                runs.append((int(parts[0]), int(parts[1])))
-    return runs
+                total_cycles[int(parts[0])] += int(parts[1])
+    return total_cycles
 
 
 def analyze(miss_path, stall_path):
     # One instruction can issue several loads, so count rather than just collect
-    miss_counts = Counter(read_ids(miss_path))
-
-    total_cycles = Counter()  # instr_id -> cycles spent blocking the ROB head
-    for instr_id, length in read_stalls(stall_path):
-        total_cycles[instr_id] += length
-
+    miss_counts = count_ids(miss_path)
+    total_cycles = sum_stalls(stall_path)
     return miss_counts, total_cycles
 
 
